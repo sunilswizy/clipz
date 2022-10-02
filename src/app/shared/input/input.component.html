@@ -1,0 +1,33 @@
+<label class="inline-block mb-2">{{ label }}</label>
+<input
+  [type]="type"
+  class="block w-full py-1.5 px-3 text-gray-200 border border-gray-400 transition duration-500 focus:outline-none rounded bg-transparent focus:border-indigo-400"
+  [formControl]="control"
+  [placeholder]="placeholder"
+  [mask]="format"
+/>
+
+<ng-container *ngIf="control?.touched && control?.dirty">
+  <p *ngIf="control?.errors?.required" class="text-red-400">
+    enter the {{ label }}
+  </p>
+  <p *ngIf="control?.errors?.minlength" class="text-red-400">
+    {{ label }} length must be
+    {{ control.errors?.minlength.requiredLength }} characters given
+    {{ control.errors?.minlength.actualLength }}
+  </p>
+  <p *ngIf="control?.errors?.email" class="text-red-400">
+    enter the valid {{ label }}
+  </p>
+  <p *ngIf="control?.errors?.max" class="text-red-400">
+    {{ label }} must be less then {{ control.errors?.max.max }} given
+    {{ control.errors?.max.actual }}
+  </p>
+  <p *ngIf="control?.errors?.min" class="text-red-400">
+    {{ label }} must be less then {{ control.errors?.min.min }} given
+    {{ control.errors?.min.actual }}
+  </p>
+  <p *ngIf="control?.errors?.pattern" class="text-red-400">
+    enter strong {{ label }}
+  </p>
+</ng-container>
