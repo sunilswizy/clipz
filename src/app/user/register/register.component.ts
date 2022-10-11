@@ -70,7 +70,6 @@ export class RegisterComponent {
 
     this.alertMsg = 'successfully your account created!';
     this.alertColor = 'green'
-    // this.resetForm();
   }
 
   resetForm() {

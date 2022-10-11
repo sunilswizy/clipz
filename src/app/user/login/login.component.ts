@@ -31,7 +31,7 @@ export class LoginComponent implements OnInit {
     this.alertMsg = 'please wait...';
     this.alertColor = 'orange'
     try {
-      const userCred = await this.auth.signInWithEmailAndPassword(email, password);
+      await this.auth.signInWithEmailAndPassword(email, password);
     }
     catch(e: any) {
       this.alertColor = 'red';
@@ -54,6 +54,6 @@ export class LoginComponent implements OnInit {
     }
     this.showAlert = true;
     this.alertColor = 'green';
-    this.alertMsg = 'successfully logged...!'
+    this.alertMsg = 'successfully logged!';
   }
 }
