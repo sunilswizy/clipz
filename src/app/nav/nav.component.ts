@@ -17,13 +17,12 @@ export class NavComponent implements OnInit {
 
   openModal($event: Event) {
     $event.preventDefault()
-    this.modal.toggleModal('auth')
-  
+    this.modal.toggleModal('auth');
   }
 
   async signOut(e: Event) {
     e.preventDefault();
-    await this.auth.signOut()
+    await this.auth.signOut();
   }
 
 }
