@@ -27,7 +27,10 @@
     {{ label }} must be less then {{ control.errors?.min.min }} given
     {{ control.errors?.min.actual }}
   </p>
-  <p *ngIf="control?.errors?.pattern" class="text-red-400">
-    enter strong {{ label }}
+  <p *ngIf="control?.errors?.noMatch" class="text-red-400">
+    passwornd and confirm passwornd does't match
+  </p>
+  <p *ngIf="control?.errors?.emailTaken" class="text-red-400">
+    email is already taken
   </p>
 </ng-container>
