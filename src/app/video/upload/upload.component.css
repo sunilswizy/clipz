@@ -1,0 +1,11 @@
+.loader {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    height: 38vh;
+}
+
+.icon {
+    font-size: 75px;
+}

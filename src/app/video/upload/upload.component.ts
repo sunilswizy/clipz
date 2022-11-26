@@ -6,6 +6,8 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { ClipzService } from 'src/app/services/clipz.service';
 import { Router } from '@angular/router';
+import { FfmpegService } from 'src/app/services/ffmpeg.service';
+import { combineLatest } from 'rxjs';
 @Component({
   selector: 'app-upload',
   templateUrl: './upload.component.html',
@@ -25,22 +27,31 @@ export class UploadComponent implements OnDestroy {
   textRender = `video is uploading... ${this.liveCount}% done`;
   user: firebase.User | null = null;
   task ?:AngularFireUploadTask;
+  screenShots: string[] = [];
+  selectedScreenShot = '';
+  screenShotTask?: AngularFireUploadTask;
 
   constructor(private storage: AngularFireStorage, 
               private clip: ClipzService,
               private router: Router,
+              public ffmpeg: FfmpegService,
               private auth: AngularFireAuth) {
     auth.user.subscribe(user => {
       this.user = user;
     })
+    ffmpeg.init()
    }
 
   ngOnDestroy(): void {
     this.task?.cancel();
   }
 
-  storeFile(event: Event) {
-    console.log(event)
+  async storeFile(event: Event) {
+
+    if(this.ffmpeg.isRunning) {
+      return;
+    }
+
     this.isDragOver = false;
     this.file = (event as DragEvent).dataTransfer ? 
     (event as DragEvent).dataTransfer?.files.item(0) ?? null :
@@ -50,45 +61,67 @@ export class UploadComponent implements OnDestroy {
     if(!this.file || this.file.type !== 'video/mp4') {
       return;
     }
-
     this.uploadForm.get('title')?.setValue(this.file.name.replace(/\.[^/.]+$/, ""));
+
+    this.screenShots = await this.ffmpeg.getScreenShots(this.file)
+    this.selectedScreenShot = this.screenShots[0]
     this.showForm = true;
   }
 
+
   async uploadFile() {
     this.uploadForm.disable()
-    console.log("File uploaded...")
     this.isUploading = true
-    
-    let path = `clipz/${uuid()}/${this.file?.name}`;
+
+    let uuids = uuid()
+    let path = `clipz/${uuids}/${this.file?.name}`;
 
       this.task = this.storage.upload(path, this.file);
 
-      this.task.percentageChanges()
+      let screenShotBlob = await this.ffmpeg.blobFromUrl(this.selectedScreenShot);
+
+      const screenShotPath = `screenshots/${uuids}.png`
+
+      this.screenShotTask = this.storage.upload(screenShotPath, screenShotBlob);
+
+      combineLatest([
+        this.task.percentageChanges(),
+        this.screenShotTask.percentageChanges()
+      ])
       .subscribe({
-        next: (res: any) => {
-          this.liveCount = Math.floor(res);
+        next: (progress: any) => {
+          console.log(progress)
+          const [clipProgress, screenShotProgress] = progress;
+
+          // if(!clipProgress || !screenShotProgress) {
+          //   return;
+          // }
+
+          this.liveCount = Math.floor((clipProgress + screenShotProgress) / 2);
           this.textRender = `video is uploading... ${this.liveCount}% done`;
           if(this.liveCount === 100) {
 
           this.storage.ref(path).getDownloadURL().subscribe(async url => {
-            const clip = {
-              uid: this.user?.uid as string,
-              displayName: this.user?.displayName as string,
-              title: this.uploadForm.get('title')?.value as string,
-              fileName: this.file?.name as string,
-              url,
-              timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }
-
-            const { id } = await this.clip.createClip(clip);
-            this.router.navigate([
-              'clip', id
-            ])
-            console.log({id})
-            this.textRender = "video is uploaded succesfully";
-            this.alertColor = 'green';
-          })
+            this.storage.ref(screenShotPath).getDownloadURL().subscribe(async screenShotUrl => {
+              const clip = {
+                uid: this.user?.uid as string,
+                displayName: this.user?.displayName as string,
+                title: this.uploadForm.get('title')?.value as string,
+                fileName: this.file?.name as string,
+                url,
+                screenShotUrl,
+                screenShotName: `${uuids}.png`,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+              }
+  
+              const { id } = await this.clip.createClip(clip);
+              this.router.navigate([
+                'clip', id
+              ])
+              this.textRender = "video is uploaded succesfully";
+              this.alertColor = 'green';
+            })
+            })
           }
         },
         error: (e: any) => {
@@ -100,5 +133,9 @@ export class UploadComponent implements OnDestroy {
           }
         }
       })
+  }
+
+  selectScreenShot(screenShot: string) {
+    this.selectedScreenShot = screenShot;
   }
 }
